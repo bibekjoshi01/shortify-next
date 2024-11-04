@@ -6,45 +6,54 @@ const URLShortenerForm = () => {
   const [url, setUrl] = useState("");
   const [generated, setGenerated] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  const generate = () => {
-    setError(""); // Reset error on new generate attempt
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/json");
+  const closeGeneratedUrl = () => {
+    setGenerated(false);
+  };
 
-    const raw = JSON.stringify({
-      url: url,
-    });
+  const handleGenerateUrl = async () => {
+    if (!url.trim()) {
+      setError("Please enter a URL.");
+      return;
+    }
 
-    const requestOptions = {
-      method: "POST",
-      headers: myHeaders,
-      body: raw,
-      redirect: "follow",
-    };
+    try {
+      setLoading(true);
+      setError(null);
 
-    fetch("/api/generate", requestOptions)
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to generate URL");
-        return response.json();
-      })
-      .then((result) => {
-        const shortUrl = result.shorturl; // Assume API returns 'shorturl'
-        setGenerated(`${process.env.NEXT_PUBLIC_HOST}/${shortUrl}`);
-        setUrl("");
-        setIsCopied(false);
-      })
-      .catch((error) => {
-        setError("Error generating short URL. Please try again.");
-        console.error(error);
-      });
+      const requestOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url }),
+      };
+
+      const response = await fetch("/api/generate", requestOptions);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const message = errorData.message || "Failed to generate URL.";
+        throw new Error(message);
+      }
+
+      const result = await response.json();
+      const shortUrl = result.shorturl;
+
+      setGenerated(`${process.env.NEXT_PUBLIC_HOST}/${shortUrl}`);
+      setUrl("");
+      setIsCopied(false);
+    } catch (error) {
+      setError(error.message || "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generated).then(() => {
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset copied state after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000);
     });
   };
 
@@ -60,18 +69,26 @@ const URLShortenerForm = () => {
           className="px-4 py-2 focus:outline-purple-600 rounded-md border-2 border-purple-300"
           placeholder="Enter your URL"
           onChange={(e) => setUrl(e.target.value)}
+          required={true}
         />
         <button
-          onClick={generate}
+          onClick={handleGenerateUrl}
           className="bg-purple-500 rounded-lg shadow-lg p-3 py-1 my-3 font-bold text-white transition-all hover:bg-purple-600"
-          disabled={!url}
+          disabled={loading}
         >
-          Generate
+          {loading ? "Generating..." : "Generate"}
         </button>
         {error && <p className="text-red-600 font-semibold">{error}</p>}
       </div>
       {generated && (
-        <div className="mt-4 p-4 bg-white rounded-lg shadow-sm border border-purple-200 flex flex-col items-start gap-2">
+        <div className="relative mt-4 p-4 bg-white rounded-lg shadow-sm border border-purple-200 flex flex-col items-start gap-2">
+          <button
+            onClick={closeGeneratedUrl}
+            className="absolute top-0 right-2 text-gray-600 hover:text-gray-900 transition-all text-lg"
+            aria-label="Close"
+          >
+            &times;
+          </button>
           <span className="font-semibold text-lg text-purple-700">
             Your Shortened URL
           </span>

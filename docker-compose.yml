@@ -8,18 +8,27 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/bitlinks
-      - NEXT_PUBLIC_HOST=http://localhost:3000
+      - MONGODB_URI=${MONGODB_URI}
+      - NEXT_PUBLIC_HOST=${NEXT_PUBLIC_HOST}
     depends_on:
-      - mongo
+      - mongodb
+    networks:
+      - mongo-net
 
-  mongo:
-    image: mongo:6.0
-    container_name: mongo
+  mongodb:
+    image: mongo
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    networks:
+      - mongo-net
 
 volumes:
   mongo-data:
+
+networks:
+  mongo-net:
