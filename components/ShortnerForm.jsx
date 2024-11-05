@@ -100,7 +100,7 @@ const URLShortenerForm = () => {
             </code>
             <button
               onClick={copyToClipboard}
-              className={`p-1 px-2 rounded-md font-semibold ${
+              className={`p-1 px-2 rounded-md font-semibold w-full sm:w-auto ${
                 isCopied
                   ? "bg-green-200 text-green-700"
                   : "bg-gray-200 text-gray-700"
